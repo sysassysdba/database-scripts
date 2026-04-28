@@ -1,0 +1,59 @@
+-- =====================================================================
+-- Script SQL*Plus: compare_databases_report.sql
+-- Objetivo: Generar un reporte Compare Period ADDM a nivel Cluster (RAC)
+-- API: DBMS_ADDM.COMPARE_DATABASES
+-- =====================================================================
+
+SET ECHO OFF
+SET VERIFY OFF
+SET FEEDBACK OFF
+SET HEADING OFF
+SET PAGESIZE 0
+SET TRIMSPOOL ON
+SET TRIMOUT ON
+SET LINESIZE 32767
+SET LONG 10000000
+SET LONGCHUNKSIZE 10000000
+
+PROMPT
+PROMPT =================================================================================
+PROMPT DBMS_ADDM.COMPARE_DATABASES - Analisis global (RAC / Exadata Database Mode)
+PROMPT =================================================================================
+PROMPT (Usa DBID=0 para indicar la "base de datos actual" - se pasara como NULL)
+PROMPT
+
+ACCEPT base_dbid   NUMBER DEFAULT 0 PROMPT 'Base DBID (0=current): '
+ACCEPT base_bsnap  NUMBER           PROMPT 'Base BEGIN SNAP_ID: '
+ACCEPT base_esnap  NUMBER           PROMPT 'Base END   SNAP_ID: '
+
+ACCEPT comp_dbid   NUMBER DEFAULT 0 PROMPT 'Comp DBID (0=current): '
+ACCEPT comp_bsnap  NUMBER           PROMPT 'Comp BEGIN SNAP_ID: '
+ACCEPT comp_esnap  NUMBER           PROMPT 'Comp END   SNAP_ID: '
+
+ACCEPT report_type CHAR   DEFAULT 'HTML' PROMPT 'Report type (HTML|XML) [HTML]: '
+ACCEPT out_file    CHAR   DEFAULT 'addm_compare_databases.html' PROMPT 'Output file [addm_compare_databases.html]: '
+
+COLUMN rpt_type NEW_VALUE rpt_type NOPRINT
+SELECT UPPER('&&report_type') AS rpt_type FROM dual;
+
+SET TERMOUT OFF
+SPOOL &&out_file
+
+SELECT DBMS_ADDM.COMPARE_DATABASES(
+         base_dbid          => CASE WHEN &&base_dbid = 0 THEN NULL ELSE &&base_dbid END,
+         base_begin_snap_id => &&base_bsnap,
+         base_end_snap_id   => &&base_esnap,
+         comp_dbid          => CASE WHEN &&comp_dbid = 0 THEN NULL ELSE &&comp_dbid END,
+         comp_begin_snap_id => &&comp_bsnap,
+         comp_end_snap_id   => &&comp_esnap,
+         report_type        => '&&rpt_type'
+       )
+FROM dual;
+
+SPOOL OFF
+SET TERMOUT ON
+
+PROMPT
+PROMPT =================================================================================
+PROMPT ✅ Reporte generado exitosamente en: &&out_file
+PROMPT =================================================================================
